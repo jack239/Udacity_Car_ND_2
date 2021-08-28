@@ -91,12 +91,13 @@ def download_tfr(filename, data_dir):
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode != 0:
         logger.error(f'Could not download file {filename}')
+        return None
 
     local_path = os.path.join(dest, os.path.basename(filename))
     return local_path
 
 
-def process_tfr(path, data_dir):
+def process_tfr(path, dest):
     """
     process a Waymo tf record into a tf api tf record
 
@@ -105,7 +106,6 @@ def process_tfr(path, data_dir):
         - data_dir [str]: path to the destination directory
     """
     # create processed data dir
-    dest = os.path.join(data_dir, 'processed')
     os.makedirs(dest, exist_ok=True)
     file_name = os.path.basename(path)
 
@@ -126,8 +126,19 @@ def process_tfr(path, data_dir):
 def download_and_process(filename, temp_dir, data_dir):
     # need to re-import the logger because of multiprocesing
     logger = get_module_logger(__name__)
+
+    dest = os.path.join(data_dir, 'processed')
+
+    target_file = os.path.join(dest, filename.split("/")[-1])
+    if os.path.isfile(target_file):
+        logger.info(f'Skip file {target_file}')
+        return
+
     local_path = download_tfr(filename, temp_dir)
-    process_tfr(local_path, data_dir)
+    if local_path is None:
+        return
+
+    process_tfr(local_path, dest)
     # remove the original tf record to save space
     logger.info(f'Deleting {local_path}')
     os.remove(local_path)
@@ -149,7 +160,7 @@ if __name__ == "__main__":
     data_dir = args.data_dir
     temp_dir = args.temp_dir
     # init ray
-    ray.init(num_cpus=cpu_count())
+    ray.init(num_cpus=cpu_count(), dashboard_host='0.0.0.0')
 
     workers = [download_and_process.remote(fn, temp_dir, data_dir) for fn in filenames[:100]]
     _ = ray.get(workers)

@@ -48,8 +48,8 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, EXE_L2)))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, EXA_L2)))
 
 # import functions from individual exercise files
-import l2_examples
-import l2_exercises
+# import l2_examples
+# import l2_exercises
 import l1_examples
 import l1_exercises
 
@@ -58,7 +58,7 @@ import l1_exercises
 # Set parameters and perform initializations
 
 # Select Waymo Open Dataset file and frame numbers
-data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+data_filename = 'segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
 #data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 2
 # data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord'  # Sequence 3
 show_only_frames = [0, 10]  # show only frames in interval for debugging
@@ -67,7 +67,7 @@ show_only_frames = [0, 10]  # show only frames in interval for debugging
 vis_pause_time = 0  
 
 # Prepare Waymo Open Dataset file for loading
-data_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset', data_filename)  # adjustable path in case this script is called from another working directory
+data_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset/training', data_filename)  # adjustable path in case this script is called from another working directory
 results_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'results')
 datafile = WaymoDataFileReader(data_fullpath)
 datafile_iter = iter(datafile)  # initialize dataset iterator
@@ -103,7 +103,7 @@ while True:
         lidar_name = dataset_pb2.LaserName.TOP
 
         # Exercise C1-3-1 : print no. of vehicles
-        # l1_exercises.print_no_of_vehicles(frame) 
+        # l1_exercises.print_no_of_vehicles(frame)
 
         # Example C1-3-2 : display camera image
         # l1_examples.display_image(frame)

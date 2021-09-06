@@ -61,7 +61,29 @@ def load_configs_model(model_name='darknet', configs=None):
         ####### ID_S3_EX1-3 START #######     
         #######
         print("student task ID_S3_EX1-3")
+        configs.model_path = os.path.join(parent_path, 'tools', 'objdet_models', 'resnet')
+        configs.pretrained_filename = os.path.join(configs.model_path, 'pretrained', 'fpn_resnet_18_epoch_300.pth')
+        configs.arch = "fpn_resnet"
 
+        configs.conf_thresh = 0.5
+        configs.num_layers = 18
+        configs.head_conv = 64
+        configs.K = 50
+        configs.down_ratio = 4
+        configs.peak_thresh = 0.2
+
+        configs.num_classes = 3
+        configs.num_center_offset = 2
+        configs.num_z = 1
+        configs.num_dim = 3
+        configs.num_direction = 2
+        configs.heads = {
+            'hm_cen': configs.num_classes,
+            'cen_offset': configs.num_center_offset,
+            'direction': configs.num_direction,
+            'z_coor': configs.num_z,
+            'dim': configs.num_dim
+        }
         #######
         ####### ID_S3_EX1-3 END #######     
 
@@ -72,6 +94,7 @@ def load_configs_model(model_name='darknet', configs=None):
     configs.no_cuda = True # if true, cuda is not used
     configs.gpu_idx = 0  # GPU index to use.
     configs.device = torch.device('cpu' if configs.no_cuda else 'cuda:{}'.format(configs.gpu_idx))
+    configs.min_iou = 0.5
 
     return configs
 
@@ -118,7 +141,12 @@ def create_model(configs):
         ####### ID_S3_EX1-4 START #######     
         #######
         print("student task ID_S3_EX1-4")
-
+        model = fpn_resnet.get_pose_net(
+            num_layers=configs.num_layers,
+            heads=configs.heads,
+            head_conv=configs.head_conv,
+            imagenet_pretrained=configs.pretrained_filename
+        )
         #######
         ####### ID_S3_EX1-4 END #######     
     
@@ -139,6 +167,23 @@ def create_model(configs):
 
 # detect trained objects in birds-eye view
 def detect_objects(input_bev_maps, model, configs):
+    def detection_to_object(detection):
+        score, bev_x, bev_y, bev_z, bev_h, bev_w, bev_l, yaw = detection
+        x_scale = (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
+        y_scale = (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
+        x = bev_y * x_scale
+        y = bev_x * y_scale - (configs.lim_y[1] - configs.lim_y[0]) / 2
+        w = bev_w * y_scale
+        l = bev_l * x_scale
+        z = bev_z
+        h = bev_h
+        if ((configs.lim_x[0] <= x <= configs.lim_x[1]) and
+            (configs.lim_y[0] <= y <= configs.lim_y[1]) and
+            (configs.lim_z[0] <= z <= configs.lim_z[1])):
+            res = [x, y, z, h, w, l, yaw]
+
+            return [1] + list(map(float, res))
+        return None
 
     # deactivate autograd engine during test to reduce memory usage and speed up computations
     with torch.no_grad():  
@@ -163,10 +208,19 @@ def detect_objects(input_bev_maps, model, configs):
 
         elif 'fpn_resnet' in configs.arch:
             # decode output and perform post-processing
-            
+            def _sigmoid(x):
+                return torch.clamp(x.sigmoid_(), min=1e-4, max=1 - 1e-4)
+
             ####### ID_S3_EX1-5 START #######     
             #######
             print("student task ID_S3_EX1-5")
+            outputs['hm_cen'] = _sigmoid(outputs['hm_cen'])
+            outputs['cen_offset'] = _sigmoid(outputs['cen_offset'])
+            # detections size (batch_size, K, 10)
+            detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
+                                outputs['dim'], K=configs.K)
+            detections = detections.cpu().numpy().astype(np.float32)
+            detections = post_processing(detections, configs)[0][1]
 
             #######
             ####### ID_S3_EX1-5 END #######     
@@ -177,18 +231,15 @@ def detect_objects(input_bev_maps, model, configs):
     #######
     # Extract 3d bounding boxes from model response
     print("student task ID_S3_EX2")
-    objects = [] 
+    objects = [detection_to_object(detection) for detection in detections]
+    objects = [obj for obj in objects if obj]
 
     ## step 1 : check whether there are any detections
-
         ## step 2 : loop over all detections
-        
             ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
-        
             ## step 4 : append the current object to the 'objects' array
         
     #######
     ####### ID_S3_EX2 START #######   
-    
-    return objects    
+    return objects
 

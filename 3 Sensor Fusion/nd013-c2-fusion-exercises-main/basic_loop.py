@@ -157,7 +157,7 @@ while True:
         # l2_examples.min_max_intensity(lidar_pcl)
 
         # Example C2-4-2 : count total no. of vehicles and vehicles that are difficult to track
-        # l2_examples.count_vehicles(frame)
+        l2_examples.count_vehicles(frame)
 
         # Example C2-4-3 : Display label bounding boxes on top of BEV map
         # lidar_bev = load_object_from_file(results_fullpath, data_filename, 'lidar_bev', cnt_frame)

@@ -22,34 +22,32 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 import misc.params as params 
 
+def getXP(meas):
+    x = np.matrix(np.zeros((6, 1)))
+    base_pos = meas.sensor.sens_to_veh * np.vstack([meas.z[:3], [[1]]])
+    x[:3] = base_pos[:3]
+
+    P = np.zeros((6, 6))
+    M_rot = meas.sensor.sens_to_veh[0:3, 0:3]
+    P_pos = M_rot * meas.R * M_rot.T
+    P[:3, :3] = P_pos[:3, :3]
+    vel_sigma = [params.sigma_p44, params.sigma_p55, params.sigma_p66]
+    for index in range(3):
+        P[3 + index, 3 + index] = vel_sigma[index] ** 2
+    return x, P
+
 class Track:
     '''Track class with state, covariance, id, score'''
     def __init__(self, meas, id):
         print('creating track no.', id)
         M_rot = meas.sensor.sens_to_veh[0:3, 0:3] # rotation matrix from sensor to vehicle coordinates
-        
-        ############
-        # TODO Step 2: initialization:
-        # - replace fixed track initialization values by initialization of x and P based on 
-        # unassigned measurement transformed from sensor to vehicle coordinates
-        # - initialize track state and track score with appropriate values
-        ############
 
-        self.x = np.matrix([[49.53980697],
-                        [ 3.41006279],
-                        [ 0.91790581],
-                        [ 0.        ],
-                        [ 0.        ],
-                        [ 0.        ]])
-        self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        self.state = 'confirmed'
-        self.score = 0
-        
+        self.x, self.P = getXP(meas)
+
+        self.state = 'initialized'
+        self.scores = []
+        self.add_score(1)
+
         ############
         # END student code
         ############ 
@@ -61,6 +59,12 @@ class Track:
         self.height = meas.height
         self.yaw =  np.arccos(M_rot[0,0]*np.cos(meas.yaw) + M_rot[0,1]*np.sin(meas.yaw)) # transform rotation from sensor to vehicle coordinates
         self.t = meas.t
+
+    def add_score(self, val):
+        self.scores.append(val)
+        if (len(self.scores) > params.window):
+            self.scores = self.scores[-params.window : ]
+        self.score = sum(self.scores) / params.window
 
     def set_x(self, x):
         self.x = x
@@ -80,8 +84,17 @@ class Track:
             self.height = c*meas.height + (1 - c)*self.height
             M_rot = meas.sensor.sens_to_veh
             self.yaw = np.arccos(M_rot[0,0]*np.cos(meas.yaw) + M_rot[0,1]*np.sin(meas.yaw)) # transform rotation from sensor to vehicle coordinates
-        
-        
+
+    def isDeprecated(self):
+        if self.state == "confirmed" and self.score < params.delete_threshold:
+            return True
+        if self.score == 0:
+            return True
+        if max(self.P[0, 0], self.P[1, 1]) > params.max_P:
+            return True
+        return False
+
+
 ###################        
 
 class Trackmanagement:
@@ -106,10 +119,12 @@ class Trackmanagement:
             # check visibility    
             if meas_list: # if not empty
                 if meas_list[0].sensor.in_fov(track.x):
-                    # your code goes here
+                    track.add_score(0)
                     pass 
 
-        # delete old tracks   
+        # delete old tracks
+        deprected_tracks = [track for track in self.track_list if track.isDeprecated()]
+        list(map(self.delete_track, deprected_tracks))
 
         ############
         # END student code
@@ -139,6 +154,9 @@ class Trackmanagement:
         # - increase track score
         # - set track state to 'tentative' or 'confirmed'
         ############
+        track.add_score(1)
+        if track.score >= params.confirmed_threshold:
+            track.state = "confirmed"
 
         pass
         

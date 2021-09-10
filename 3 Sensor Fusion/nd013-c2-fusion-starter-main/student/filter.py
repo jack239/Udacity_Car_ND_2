@@ -16,43 +16,61 @@ import numpy as np
 # add project directory to python path to enable relative imports
 import os
 import sys
+
+import misc.params
+
 PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-import misc.params as params 
+import misc.params as params
+
+
+def get_F(dt, n):
+    F = np.eye(2 * n)
+    for id in range(n):
+        F[id, id + n] = dt
+    return F
+
+def get_Q(dt, n, sigma):
+    dt2 = dt * dt
+    dt3 = dt2 * dt
+    dt4 = dt3 * dt
+    Q = np.diagflat([[dt4 / 4] * n, [dt2] * n])
+    Qside = np.eye(2 * n, k=n) * dt3 / 2
+    return (Q + Qside) * sigma
+
 
 class Filter:
     '''Kalman filter class'''
     def __init__(self):
+        dt = params.dt
+        n = params.dim_state // 2
+        self.__F = get_F(dt, n)
+        self.__Q = get_Q(dt, n, params.q)
         pass
 
     def F(self):
-        ############
-        # TODO Step 1: implement and return system matrix F
-        ############
+        return self.__F
 
-        return 0
         
         ############
         # END student code
         ############ 
 
     def Q(self):
-        ############
-        # TODO Step 1: implement and return process noise covariance Q
-        ############
-
-        return 0
+        return self.__Q
         
         ############
         # END student code
         ############ 
 
     def predict(self, track):
-        ############
-        # TODO Step 1: predict state x and estimation error covariance P to next timestep, save x and P in track
-        ############
-
+        F = self.F()
+        Q = self.Q()
+        x = F * track.x
+        P = F * track.P * F.T + Q
+        track.set_x(x)
+        track.set_P(P)
         pass
         
         ############
@@ -60,32 +78,33 @@ class Filter:
         ############ 
 
     def update(self, track, meas):
-        ############
-        # TODO Step 1: update state x and covariance P with associated measurement, save x and P in track
-        ############
-        
+        x = track.x
+        H = meas.sensor.get_H(x)
+        S = self.S(track, meas, H)
+        K = track.P * H.T * S.I
+        gamma = self.gamma(track, meas)
+
+        x = track.x + K * gamma  # state update
+        I = np.eye(params.dim_state)
+        P = (I - K * H) * track.P  # covariance update
+        track.set_x(x)
+        track.set_P(P)
+        track.update_attributes(meas)
+
         ############
         # END student code
         ############ 
         track.update_attributes(meas)
     
     def gamma(self, track, meas):
-        ############
-        # TODO Step 1: calculate and return residual gamma
-        ############
-
-        return 0
+        return meas.z - meas.sensor.get_hx(track.x)
         
         ############
         # END student code
         ############ 
 
     def S(self, track, meas, H):
-        ############
-        # TODO Step 1: calculate and return covariance of residual S
-        ############
-
-        return 0
+        return H * track.P * H.transpose() + meas.R
         
         ############
         # END student code

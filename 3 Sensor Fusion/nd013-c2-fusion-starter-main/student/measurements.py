@@ -12,6 +12,7 @@
 
 # imports
 import numpy as np
+import math
 
 # add project directory to python path to enable relative imports
 import os
@@ -42,14 +43,10 @@ class Sensor:
         self.veh_to_sens = np.linalg.inv(self.sens_to_veh) # transformation vehicle to sensor coordinates
     
     def in_fov(self, x):
-        # check if an object x can be seen by this sensor
-        ############
-        # TODO Step 4: implement a function that returns True if x lies in the sensor's field of view, 
-        # otherwise False.
-        ############
+        obj_pos = (self.veh_to_sens * np.vstack([x[:3], [[1]]]))
+        angle = math.atan2(obj_pos[1, 0], obj_pos[0, 0])
+        return self.fov[0] <= angle <= self.fov[1]
 
-        return True
-        
         ############
         # END student code
         ############ 
@@ -62,7 +59,7 @@ class Sensor:
             pos_sens = self.veh_to_sens*pos_veh # transform from vehicle to lidar coordinates
             return pos_sens[0:3]
         elif self.name == 'camera':
-            
+
             ############
             # TODO Step 4: implement nonlinear camera measurement function h:
             # - transform position estimate from vehicle to camera coordinates
@@ -70,8 +67,16 @@ class Sensor:
             # - make sure to not divide by zero, raise an error if needed
             # - return h(x)
             ############
+            pos_sens = self.veh_to_sens * np.vstack([x[:3], [[1]]])
+            hx = np.zeros((2,1))
 
-            pass
+            if pos_sens[0] == 0:
+                raise NameError('Undefined for x=0')
+            else:
+                hx[0, 0] = self.c_i - self.f_i * pos_sens[1] / pos_sens[0] # project to image coordinates
+                hx[1, 0] = self.c_j - self.f_j * pos_sens[2] / pos_sens[0]
+                return hx
+        pass
         
             ############
             # END student code
@@ -111,13 +116,9 @@ class Sensor:
         
     def generate_measurement(self, num_frame, z, meas_list):
         # generate new measurement from this sensor and add to measurement list
-        ############
-        # TODO Step 4: remove restriction to lidar in order to include camera as well
-        ############
-        
-        if self.name == 'lidar':
-            meas = Measurement(num_frame, z, self)
-            meas_list.append(meas)
+
+        meas = Measurement(num_frame, z, self)
+        meas_list.append(meas)
         return meas_list
         
         ############
@@ -125,20 +126,19 @@ class Sensor:
         ############ 
         
         
-################### 
-        
+###################
 class Measurement:
     '''Measurement class including measurement values, covariance, timestamp, sensor'''
     def __init__(self, num_frame, z, sensor):
         # create measurement object
         self.t = (num_frame - 1) * params.dt # time
         self.sensor = sensor # sensor that generated this measurement
-        
+
+        self.z = np.zeros((sensor.dim_meas, 1))  # measurement vector
         if sensor.name == 'lidar':
             sigma_lidar_x = params.sigma_lidar_x # load params
             sigma_lidar_y = params.sigma_lidar_y
             sigma_lidar_z = params.sigma_lidar_z
-            self.z = np.zeros((sensor.dim_meas,1)) # measurement vector
             self.z[0] = z[0]
             self.z[1] = z[1]
             self.z[2] = z[2]
@@ -151,7 +151,11 @@ class Measurement:
             self.height = z[3]
             self.yaw = z[6]
         elif sensor.name == 'camera':
-            
+            self.z[0] = z[0]
+            self.z[1] = z[1]
+            self.R = np.matrix(np.diagflat([val ** 2 for val in [params.sigma_cam_i, params.sigma_cam_j]]))
+            self.width = z[2]
+            self.length = z[3]
             ############
             # TODO Step 4: initialize camera measurement including z and R 
             ############

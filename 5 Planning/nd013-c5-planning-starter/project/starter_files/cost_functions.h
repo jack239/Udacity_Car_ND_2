@@ -50,10 +50,10 @@ const double RIGHT_LANE_CHANGE = 1e1;
 
 // Average Vehicle {Length, Width} in meters
 // (https://en.wikipedia.org/wiki/Family_car)
-const vector<double> VEHICLE_SIZE = {5, 2};
+//const vector<double> VEHICLE_SIZE = {5, 2};
 
 // is the minimum distance in case of congestion (v = 0).
-const double MIN_FOLLOW_DISTANCE = 1 * VEHICLE_SIZE[0];
+//const double MIN_FOLLOW_DISTANCE = 1 * VEHICLE_SIZE[0];
 
 namespace cost_functions {
 // COST FUNCTIONS

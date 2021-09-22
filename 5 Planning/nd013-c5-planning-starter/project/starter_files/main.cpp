@@ -203,7 +203,7 @@ int main ()
           vector<double> v_points = data["traj_v"];
           double yaw = data["yaw"];
           double velocity = data["velocity"];
-          double sim_time = data["time"];
+//          double sim_time = data["time"];
           double waypoint_x = data["waypoint_x"];
           double waypoint_y = data["waypoint_y"];
           double waypoint_t = data["waypoint_t"];

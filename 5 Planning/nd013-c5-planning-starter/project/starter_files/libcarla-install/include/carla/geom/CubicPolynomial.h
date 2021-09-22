@@ -156,7 +156,7 @@ namespace geom {
     // b - slope
     // c - vertical curvature
     // d - curvature change
-    std::array<value_type, 4> _v = {0.0, 0.0, 0.0, 0.0};
+    std::array<value_type, 4> _v = std::array<value_type, 4>{0.0, 0.0, 0.0, 0.0};
 
     // s - distance
     value_type _s;

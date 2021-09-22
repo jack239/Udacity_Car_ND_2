@@ -9,6 +9,7 @@
  **/
 
 #include "cost_functions.h"
+#include <Eigen/Core>
 
 using namespace std;
 
@@ -45,32 +46,29 @@ double collision_circles_cost_spiral(const std::vector<PathPoint>& spiral,
       // LOG(INFO) << " ***** COLLISION DETECTED *********" << std::endl;
       break;
     }
-    double cur_x = wp.x;
-    double cur_y = wp.y;
-    double cur_yaw = wp.theta;  // This is already in rad.
+    Eigen::Vector2d wp_pos{wp.x, wp.y};
+    Eigen::Vector2d wp_dir{std::cos(wp.theta), std::sin(wp.theta)};
 
     for (size_t c = 0; c < n_circles && !collision; ++c) {
-      // TODO-Circle placement: Where should the circles be at? The code below
+      // Circle placement: Where should the circles be at? The code below
       // is NOT complete. HINT: use CIRCLE_OFFSETS[c], sine and cosine to
       // calculate x and y: cur_y + CIRCLE_OFFSETS[c] * std::sin/cos(cur_yaw)
-      auto circle_center_x = 0;  // <- Update 
-      auto circle_center_y = 0;  // <- Update 
+      Eigen::Vector2d circle_center = wp_pos + CIRCLE_OFFSETS[c] * wp_dir;
 
       for (auto obst : obstacles) {
         if (collision) {
           break;
         }
         auto actor_yaw = obst.rotation.yaw;
-        for (size_t c2 = 0; c2 < n_circles && !collision; ++c2) {
-          auto actor_center_x =
-              obst.location.x + CIRCLE_OFFSETS[c2] * std::cos(actor_yaw);
-          auto actor_center_y =
-              obst.location.y + CIRCLE_OFFSETS[c2] * std::sin(actor_yaw);
+        Eigen::Vector2d actor_pos{obst.location.x, obst.location.y};
+        Eigen::Vector2d actor_dir{std::cos(actor_yaw), std::sin(actor_yaw)};
 
-          // TODO-Distance from circles to obstacles/actor: How do you calculate
+        for (size_t c2 = 0; c2 < n_circles && !collision; ++c2) {
+          Eigen::Vector2d  actor_center = actor_pos + CIRCLE_OFFSETS[c2] * actor_dir;
+          // Distance from circles to obstacles/actor: How do you calculate
           // the distance between the center of each circle and the
           // obstacle/actor
-          double dist = 0;  // <- Update
+          double dist = (actor_center - circle_center).norm();  // <- Update
 
           collision = (dist < (CIRCLE_RADII[c] + CIRCLE_RADII[c2]));
         }
@@ -85,20 +83,25 @@ double close_to_main_goal_cost_spiral(const std::vector<PathPoint>& spiral,
   // The last point on the spiral should be used to check how close we are to
   // the Main (center) goal. That way, spirals that end closer to the lane
   // center-line, and that are collision free, will be prefered.
-  auto n = spiral.size();
 
-  // TODO-distance between last point on spiral and main goal: How do we
+  // distance between last point on spiral and main goal: How do we
   // calculate the distance between the last point on the spiral (spiral[n-1])
   // and the main goal (main_goal.location). Use spiral[n - 1].x, spiral[n -
   // 1].y and spiral[n - 1].z.
   // Use main_goal.location.x, main_goal.location.y and main_goal.location.z
   // Ex: main_goal.location.x - spiral[n - 1].x
-  auto delta_x = 0;  // <- Update
-  auto delta_y = 0;  // <- Update
-  auto delta_z = 0;  // <- Update
+  Eigen::Vector3d spiral_end{
+      spiral.back().x, 
+      spiral.back().y, 
+      spiral.back().z, 
+  };
+  Eigen::Vector3d goal_pos{
+      main_goal.location.x,
+      main_goal.location.y,
+      main_goal.location.z,
+  };
 
-  auto dist = std::sqrt((delta_x * delta_x) + (delta_y * delta_y) +
-                        (delta_z * delta_z));
+  auto dist = (goal_pos - spiral_end).norm();
 
   auto cost = logistic(dist);
   // LOG(INFO) << "distance to main goal: " << dist;

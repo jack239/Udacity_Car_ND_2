@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.10)
 # turn on -03 for best performance
 add_definitions(-std=c++14 -O3)
 
-set(CXX_FLAGS "-pthread -fPIC -DNDEBUG -Wall -Wextra")
+set(CXX_FLAGS "-pthread -fPIC -DNDEBUG -Wall -Wextra -Werror")
 set(CXX_FLAGS "${CXX_FLAGS} \
     -Wno-sign-compare\
     -Wno-unused-function\

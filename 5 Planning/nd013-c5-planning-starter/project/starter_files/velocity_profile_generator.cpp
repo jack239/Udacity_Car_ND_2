@@ -357,14 +357,13 @@ double VelocityProfileGenerator::calc_distance(const double& v_i,
   if (std::abs(a) < DBL_EPSILON) {
     d = std::numeric_limits<double>::infinity();
   } else {
-    double t = (v_i - v_f) / a;
+    double t = (v_f - v_i) / a;
     d = v_i * t + a * t * t * 0.5;
     // calc distance: use one of the common rectilinear accelerated
     // equations of motion to calculate the distance traveled while going from
     // v_i (initial velocity) to v_f (final velocity) at a constant
     // acceleration/deceleration "a". HINT look at the description of this
     // function. Make sure you handle div by 0
-    d = 0;  // <- Update
   }
   return d;
 }

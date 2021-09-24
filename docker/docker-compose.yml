@@ -1,0 +1,22 @@
+version: "3.0"
+
+services:
+  udacity_builder:
+    container_name: udacity_builder
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:2223:22"
+    cap_add:
+      - "sys_ptrace"
+    volumes: 
+      - ../:/home/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=unix$DISPLAY
+
+    image: nvidia/cuda
+    devices:
+      - /dev/nvidia0

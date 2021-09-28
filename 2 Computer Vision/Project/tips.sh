@@ -2,11 +2,15 @@
 #run docker
 docker run -it --shm-size 2000000000 -v ${PWD}:/app/project/ project-dev bash
 
+#create enviroent 
+python3 -m venv venv
+pip3 install -r docker/requirements.txt
+
 #load data files
 curl https://sdk.cloud.google.com | bash
 export PATH=$PATH:/root/google-cloud-sdk/bin/
 gcloud auth login
-python download_process.py --data_dir data_waymo --temp_dir tmp_data
+python download_process.py --data_dir ../project_data --temp_dir /tmp/waymo
 
 #split data
 export DATA_DIR=data_waymo/processed/

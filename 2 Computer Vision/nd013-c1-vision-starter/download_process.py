@@ -74,7 +74,7 @@ def create_tf_example(filename, encoded_jpeg, annotations, resize=True):
     return tf_example
 
 
-def download_tfr(filename, data_dir):
+def download_tfr(filename, raw_dir):
     """
     download a single tf record
 
@@ -85,22 +85,18 @@ def download_tfr(filename, data_dir):
     returns:
         - local_path [str]: path where the file is saved
     """
-    # create data dir
-    dest = os.path.join(data_dir, 'raw')
-    os.makedirs(dest, exist_ok=True)
-
     # download the tf record file
-    cmd = ['gsutil', 'cp', filename, f'{dest}']
-    logger.info(f'Downloading {filename}')
+    cmd = ['gsutil', 'cp', filename, f'{raw_dir}']
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode != 0:
-        logger.error(f'Could not download file {filename}')
+        logger.info(f"Download failed, {res}")
+        return None
 
-    local_path = os.path.join(dest, os.path.basename(filename))
+    local_path = os.path.join(raw_dir, os.path.basename(filename))
     return local_path
 
 
-def process_tfr(path, data_dir):
+def process_tfr(raw_path, dest_path):
     """
     process a Waymo tf record into a tf api tf record
 
@@ -108,14 +104,9 @@ def process_tfr(path, data_dir):
         - path [str]: path to the Waymo tf record file
         - data_dir [str]: path to the destination directory
     """
-    # create processed data dir
-    dest = os.path.join(data_dir, 'processed')
-    os.makedirs(dest, exist_ok=True)
-    file_name = os.path.basename(path)
-
-    logger.info(f'Processing {path}')
-    writer = tf.python_io.TFRecordWriter(f'{dest}/{file_name}')
-    dataset = tf.data.TFRecordDataset(path, compression_type='')
+    writer = tf.python_io.TFRecordWriter(dest_path)
+    file_name = os.path.basename(raw_path)
+    dataset = tf.data.TFRecordDataset(raw_path, compression_type='')
     for idx, data in enumerate(dataset):
         frame = open_dataset.Frame()
         frame.ParseFromString(bytearray(data.numpy()))
@@ -127,14 +118,27 @@ def process_tfr(path, data_dir):
 
 
 @ray.remote
-def download_and_process(filename, data_dir):
+def download_and_process(link_name, raw_dir, dest_dir):
     logger = get_module_logger(__name__)
     # need to re-import the logger because of multiprocesing
-    local_path = download_tfr(filename, data_dir)
-    process_tfr(local_path, data_dir)
+    base_name = os.path.basename(link_name)
+    dest_path = f'{dest_dir}/{base_name}'
+    if os.path.isfile(dest_path):
+        logger.info(f'Skip file {base_name}. It is already processed')
+        return
+
+    logger.info(f'Downloading {base_name}')
+    local_path = download_tfr(link_name, raw_dir)
+    if local_path is None:
+        # Nothing to process
+        logger.error(f'Could not download file {link_name}')
+        return
+
+    logger.info(f'Processing {base_name}')
+    process_tfr(local_path, dest_path)
     # remove the original tf record to save space
     logger.info(f'Deleting {local_path}')
-    # os.remove(local_path)
+    os.remove(local_path)
 
 
 if __name__ == "__main__":
@@ -148,12 +152,20 @@ if __name__ == "__main__":
     data_dir = args.data_dir
     size = args.size
 
+    dest_dir = os.path.join(data_dir, 'processed')
+    raw_dir = os.path.join(data_dir, 'raw')
+    # create processed data dir
+    os.makedirs(dest_dir, exist_ok=True)
+    os.makedirs(raw_dir, exist_ok=True)
+
+
     # open the filenames file
     with open('filenames.txt', 'r') as f:
         filenames = f.read().splitlines()
     logger.info(f'Download {len(filenames[:size])} files. Be patient, this will take a long time.')
 
     # init ray
-    ray.init(num_cpus=cpu_count())
-    workers = [download_and_process.remote(fn, data_dir) for fn in filenames[:size]]
+    ray.init(num_cpus=cpu_count(), dashboard_host='0.0.0.0')
+
+    workers = [download_and_process.remote(fn, raw_dir, dest_dir) for fn in filenames[:size]]
     _ = ray.get(workers)

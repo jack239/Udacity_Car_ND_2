@@ -8,7 +8,7 @@ In first step I modified `download_process.py` to ignore files which were downlo
 
 ### Create the splits
 Create cross validation split from  download tfrecords. 
-To save disk space I created soft link in 'create_splits.py'.
+To save disk space I created soft link in [script]('create_splits.py') .
 
 ## Training
 ### Train on base parameters.
@@ -38,7 +38,7 @@ Let use this result as started.
 
 ### Modifications.
 #### Resnet101.
-In first attempt I change `feature_extractor` from `resnet50` to `resnet101`.
+In first attempt I change `feature_extractor` from `resnet50` to `resnet101` in [pipeline](training/reference_resnet101/pipeline_new.config).
 Unfortunately this method use more memory. 
 `batch_size` was decreased to 2   
 
@@ -75,7 +75,7 @@ After 5000 steps I get this results.
 |regularization_loss|0.692396|1.782644|0.285555|0.472678|27997147136.000000|
 |total_loss|1.796558|3.348339|1.046251|1.362247|27997147136.000000|
 
-Pipelines with hue and contrast were found to be more effective. Pipelines with brightness and saturation is not.
+Pipelines with hue and contrast were found to be more effective. Pipelines with brightness and saturation were not.
 
 #### Train with augmentations
 I add to base [pipeline](training/reference_aug/pipeline_new.config) two augmentation:

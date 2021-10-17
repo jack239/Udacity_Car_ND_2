@@ -3,8 +3,15 @@
 In first step I modified `download_process.py` to ignore files which were downloaded earlier.
 
 ## Exploratory Data Analysis and Split Creation
-### Display 10 images
+### Data analys
+Let's take a look at 10 random frames.
 ![ten_images](result/ten_frames.png)
+
+We have frames day and night. Some have pedestrians, some have cars. But no cyclist.
+
+Take look at the distribution of objects. 
+
+![class pie](result/claas_distribution.png)
 
 ### Create the splits
 Create cross validation split from  download tfrecords. 
@@ -48,14 +55,14 @@ Final result was worse than with `resnet50`. mAP was smaller, losses is higher. 
 
 |Metric|reference|reference_resnet101|
 |---|---|---|
-|mAP@0.5IOU|0.046190|0.019115|
-|vehicle|0.060793|0.038229|
-|pedestrian|0.031586|0.000000|
+|mAP@0.5IOU|0.057651|0.000043|
+|vehicle|0.069979|0.000086|
+|pedestrian|0.045324|0.000001|
 |cyclist|nan|nan|
-|localization_loss|0.473013|0.524127|
-|classification_loss|0.378682|0.483823|
-|regularization_loss|0.518820|0.606705|
-|total_loss|1.370515|1.614655|
+|localization_loss|0.357283|0.870137|
+|classification_loss|0.303982|2284.230713|
+|regularization_loss|0.857036|96233312112082944.000000|
+|total_loss|1.518301|96233312112082944.000000|
 
 #### Chose augmentations
 Let chose which augmentations are usefully.
@@ -63,19 +70,20 @@ On [github](https://github.com/tensorflow/models/blob/master/research/object_det
 I found 4 additional augmentations. Let compare them. 
 
 After 5000 steps I get this results.
+![5k_aug](result/training_5k_aug.png)
 
 |Metric|base|brightness|contrast|hue|saturation|
 |---|---|---|---|---|---|
-|mAP@0.5IOU|0.014060|0.000938|0.053021|0.030180|0.000013|
-|vehicle|0.028109|0.001875|0.078981|0.053272|0.000026|
-|pedestrian|0.000010|0.000000|0.027062|0.007089|0.000000|
+|mAP@0.5IOU|0.022741|0.004134|0.004600|0.013497|0.088740|
+|vehicle|0.040212|0.008268|0.009200|0.026993|0.085034|
+|pedestrian|0.005270|0.000000|0.000000|0.000000|0.092446|
 |cyclist|nan|nan|nan|nan|nan|
-|localization_loss|0.590533|0.667572|0.427130|0.526328|1.027236|
-|classification_loss|0.513630|0.898123|0.333566|0.363240|4.166665|
-|regularization_loss|0.692396|1.782644|0.285555|0.472678|27997147136.000000|
-|total_loss|1.796558|3.348339|1.046251|1.362247|27997147136.000000|
+|localization_loss|0.471098|0.527493|0.634102|0.520275|0.311701|
+|classification_loss|0.400740|0.573891|0.546065|0.456895|0.246451|
+|regularization_loss|0.931825|0.476191|19.680801|1.119948|0.250153|
+|total_loss|1.803663|1.577576|20.860970|2.097117|0.808306|
 
-Pipelines with hue and contrast were found to be more effective. Pipelines with brightness and saturation were not.
+Pipelines with hue, brightness and saturation were found to be more effective. Pipelines with contrast do not look like useful.
 
 #### Train with augmentations
 I add to base [pipeline](training/reference_aug/pipeline_new.config) two augmentation:

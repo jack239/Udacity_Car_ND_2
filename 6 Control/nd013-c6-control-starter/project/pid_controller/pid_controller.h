@@ -9,27 +9,6 @@
 
 class PID {
 public:
-
-   /**
-   * TODO: Create the PID class
-   **/
-
-    /*
-    * Errors
-    */
-
-    /*
-    * Coefficients
-    */
-
-    /*
-    * Output limits
-    */
-  
-    /*
-    * Delta time
-    */
-
     /*
     * Constructor
     */
@@ -59,6 +38,38 @@ public:
     * Update the delta time.
     */
     double UpdateDeltaTime(double new_delta_time);
+private:
+    double prev_cte;
+    bool is_first;
+
+
+    /*
+    * Errors
+    */
+    double p_error; // current_cte
+    double i_error; // prev_cte
+    double d_error; // sum
+
+    /*
+    * Coefficients
+    */
+    double Kp_;
+    double Ki_;
+    double Kd_;
+
+
+
+    /*
+    * Output limits
+    */
+    double error_min_;
+    double error_max_;
+
+
+    /*
+    * Delta time
+    */
+    double delta_time_;
 };
 
 #endif //PID_CONTROLLER_H

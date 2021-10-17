@@ -5,6 +5,7 @@
  **********************************************/
 
 #include "pid_controller.h"
+#include "utils.h"
 #include <vector>
 #include <iostream>
 #include <math.h>
@@ -16,29 +17,36 @@ PID::PID() {}
 PID::~PID() {}
 
 void PID::Init(double Kpi, double Kii, double Kdi, double output_lim_maxi, double output_lim_mini) {
-   /**
-   * TODO: Initialize PID coefficients (and errors, if needed)
-   **/
+    Kp_ = Kpi;
+    Ki_ = Kii;
+    Kd_ = Kdi;
+    p_error = i_error = d_error = 0;
+    is_first = true;
+    error_min_ = output_lim_mini;
+    error_max_ = output_lim_maxi;
 }
 
 
 void PID::UpdateError(double cte) {
-   /**
-   * TODO: Update PID errors based on cte.
-   **/
+    if (delta_time_ < 1e-6) {
+        return;
+    }
+    if (!is_first) {
+        d_error = (cte - p_error) / delta_time_;
+    } else {
+        is_first = false;
+        d_error = 0;
+    }
+    p_error = cte;
+    i_error += cte * delta_time_;
 }
 
 double PID::TotalError() {
-   /**
-   * TODO: Calculate and return the total error
-    * The code should return a value in the interval [output_lim_mini, output_lim_maxi]
-   */
-    double control;
-    return control;
+    double error = -(Kp_ * p_error + Kd_ * d_error + Ki_ * i_error);
+    return utils::clampD(error, error_min_, error_max_);
 }
 
 double PID::UpdateDeltaTime(double new_delta_time) {
-   /**
-   * TODO: Update the delta time with new value
-   */
+    delta_time_ = new_delta_time;
+    return delta_time_;
 }

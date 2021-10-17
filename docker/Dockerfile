@@ -45,6 +45,7 @@ RUN cd /usr/src/gtest \
   && cmake .. \
   && make \
   &&  cp *.a /usr/lib \
+  &&  cp *.a /usr/src/gtest \
   && cd .. \
   && rm -rf build
 
@@ -78,3 +79,8 @@ RUN useradd -m user \
   && yes password | passwd user
 
 CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]
+
+RUN apt-get update \
+  && apt-get install -y ssh \
+    libeigen3-dev \
+  && apt-get clean

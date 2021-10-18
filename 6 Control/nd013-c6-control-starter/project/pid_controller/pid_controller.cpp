@@ -16,7 +16,8 @@ PID::PID() {}
 
 PID::~PID() {}
 
-void PID::Init(double Kpi, double Kii, double Kdi, double output_lim_maxi, double output_lim_mini) {
+void PID::Init(double Kpi, double Kii, double Kdi, double output_lim_mini, double output_lim_maxi) {
+    std::cout << "PID::Init " << Kpi << " " << Kii << " "  << Kdi << " " << output_lim_maxi << " " <<  output_lim_mini << std::endl;
     Kp_ = Kpi;
     Ki_ = Kii;
     Kd_ = Kdi;
@@ -42,7 +43,9 @@ void PID::UpdateError(double cte) {
 }
 
 double PID::TotalError() {
-    double error = -(Kp_ * p_error + Kd_ * d_error + Ki_ * i_error);
+    double error = (Kp_ * p_error + Kd_ * d_error + Ki_ * i_error);
+    std::cout << "error " << error << std::endl;
+    std::cout << "lims "  << error_min_  << " " <<  error_max_ << std::endl;
     return utils::clampD(error, error_min_, error_max_);
 }
 

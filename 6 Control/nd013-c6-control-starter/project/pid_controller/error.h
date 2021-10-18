@@ -9,8 +9,8 @@ struct Error{
 };
 
 inline int get_closest(
-        std::vector<Eigen::Vector2d>& trajectory,
-        Eigen::Vector2d ego_point
+        const std::vector<Eigen::Vector2d>& trajectory,
+        const Eigen::Vector2d ego_point
         ) {
     double min_dist = std::numeric_limits<double>::infinity();
     int result = -1;
@@ -25,8 +25,8 @@ inline int get_closest(
 }
 
 inline size_t previous_point(
-        std::vector<Eigen::Vector2d>& trajectory,
-        Eigen::Vector2d ego_point
+        const std::vector<Eigen::Vector2d>& trajectory,
+        const Eigen::Vector2d ego_point
         ) {
     int closest = get_closest(trajectory, ego_point);
     if (closest <= 0) {
@@ -43,11 +43,12 @@ inline size_t previous_point(
 }
 
 inline Error get_error(
-        std::vector<double>& x_points,
-        std::vector<double>& y_points,
-        std::vector<double>& v_points,
+        const std::vector<double>& x_points,
+        const std::vector<double>& y_points,
+        const std::vector<double>& v_points,
         double x,
         double y,
+        double yaw,
         double velocity
         ) {
     Error result;
@@ -63,15 +64,15 @@ inline Error get_error(
     const auto& next = trajectory.at(prev_point + 1);
 
     Eigen::Vector2d direction = next - prev;
-    double seg_size = (prev - next).norm();
-    direction = direction / seg_size;
-    Eigen::Vector2d norm(-direction.y() , direction.x());
-    double t = (point - prev).dot(direction) / seg_size;
-    Eigen::Vector2d projection = prev + t * direction * seg_size;
-    result.steer = (point - projection).dot(norm);
+    double desired_yaw = std::atan2(direction.y(), direction.x());
 
-    double target_velocity = v_points.at(prev_point) + t * (v_points.at(prev_point + 1) - v_points.at(prev_point));
-    result.throttle = target_velocity - velocity;
+    std::cout << "\tyaw " << yaw << "\n\tdesired_yaw " <<  desired_yaw << std::endl;
+    result.steer = yaw - desired_yaw;
+    utils::keep_angle_range_rad(result.steer, -M_PI, M_PI);
+
+    double desired_velocity = v_points.at(prev_point + 1);
+    result.throttle = velocity - desired_velocity;
+    std::cout << "\tvelocity " << velocity << "\n\tdesired_velocity " <<  desired_velocity << std::endl;
 
     return result;
 }

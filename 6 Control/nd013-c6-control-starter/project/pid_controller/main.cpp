@@ -197,11 +197,14 @@ void set_obst(vector<double> x_points, vector<double> y_points, vector<State>& o
 	obst_flag = true;
 }
 
-PIDTRainer::Params steer_start{1, 0.1, 0.1};
-PIDTRainer::Params steer_delta{0.1, 0.01, 0.01};
+//crash to wall
+PIDTRainer::Params steer_start{0.1, 0, 0};
+PIDTRainer::Params steer_delta{0.00, 0.0, 0.0};
 
-PIDTRainer::Params throttle_start{1, 0.1, 0.1};
-PIDTRainer::Params throttle_delta{0.1, 0.01, 0.01};
+
+//PIDTRainer::Params throttle_start{1, 0, 0}; // too fast
+PIDTRainer::Params throttle_start{0.2, 0, 0};
+PIDTRainer::Params throttle_delta{0, 0.0, 0};
 
 int main ()
 {
@@ -235,15 +238,13 @@ int main ()
 
   PID pid_steer = PID();
   PID pid_throttle = PID();
-  pid_steer.Init(1, 0, 0, -1, 1);
-  pid_throttle.Init(1, 0, 0, -1.2, 1.2);
   PIDTRainer steer_trainer(
           pid_steer,
           steer_start,
           steer_delta,
           "steer",
-          -1,
-          1);
+          -1.2,
+          1.2);
   PIDTRainer throttle_trainer(
           pid_throttle,
           throttle_start,
@@ -317,7 +318,14 @@ int main ()
           pid_steer.UpdateDeltaTime(new_delta_time);
 
           // Compute steer error
-          auto error = get_error(x_points, y_points, v_points, x_position, y_position, velocity);
+          auto error = get_error(
+                  x_points,
+                  y_points,
+                  v_points,
+                  x_position,
+                  y_position,
+                  yaw,
+                  velocity);
           double steer_output;
 
           /**
@@ -330,6 +338,7 @@ int main ()
 //           // Compute control to apply
            pid_steer.UpdateError(error.steer);
            steer_output = pid_steer.TotalError();
+           std::cout << "steer  " << error.steer << " " << steer_output << std::endl;
 
 //           // Save data
            file_steer.seekg(std::ios::beg);

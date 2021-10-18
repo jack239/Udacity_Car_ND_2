@@ -62,14 +62,14 @@ using json = nlohmann::json;
 #define _USE_MATH_DEFINES
 
 string hasData(string s) {
-  auto found_null = s.find("null");
+    auto found_null = s.find("null");
     auto b1 = s.find_first_of("{");
     auto b2 = s.find_first_of("}");
     if (found_null != string::npos) {
-      return "";
+        return "";
     }
     else if (b1 != string::npos && b2 != string::npos) {
-      return s.substr(b1, b2 - b1 + 1);
+        return s.substr(b1, b2 - b1 + 1);
     }
     return "";
 }
@@ -80,13 +80,13 @@ template <typename T> int sgn(T val) {
 }
 
 double angle_between_points(double x1, double y1, double x2, double y2){
-  return atan2(y2-y1, x2-x1);
+    return atan2(y2-y1, x2-x1);
 }
 
 BehaviorPlannerFSM behavior_planner(
-      P_LOOKAHEAD_TIME, P_LOOKAHEAD_MIN, P_LOOKAHEAD_MAX, P_SPEED_LIMIT,
-      P_STOP_THRESHOLD_SPEED, P_REQ_STOPPED_TIME, P_REACTION_TIME,
-      P_MAX_ACCEL, P_STOP_LINE_BUFFER);
+        P_LOOKAHEAD_TIME, P_LOOKAHEAD_MIN, P_LOOKAHEAD_MAX, P_SPEED_LIMIT,
+        P_STOP_THRESHOLD_SPEED, P_REQ_STOPPED_TIME, P_REACTION_TIME,
+        P_MAX_ACCEL, P_STOP_LINE_BUFFER);
 
 // Decalre and initialized the Motion Planner and all its class requirements
 MotionPlanner motion_planner(P_NUM_PATHS, P_GOAL_OFFSET, P_ERR_TOLERANCE);
@@ -96,359 +96,370 @@ vector<State> obstacles;
 
 void path_planner(vector<double>& x_points, vector<double>& y_points, vector<double>& v_points, double yaw, double velocity, State goal, bool is_junction, string tl_state, vector< vector<double> >& spirals_x, vector< vector<double> >& spirals_y, vector< vector<double> >& spirals_v, vector<int>& best_spirals){
 
-  State ego_state;
+    State ego_state;
 
-  ego_state.location.x = x_points[x_points.size()-1];
-  ego_state.location.y = y_points[y_points.size()-1];
-  ego_state.velocity.x = velocity;
+    ego_state.location.x = x_points[x_points.size()-1];
+    ego_state.location.y = y_points[y_points.size()-1];
+    ego_state.velocity.x = velocity;
 
-  if( x_points.size() > 1 ){
-  	ego_state.rotation.yaw = angle_between_points(x_points[x_points.size()-2], y_points[y_points.size()-2], x_points[x_points.size()-1], y_points[y_points.size()-1]);
-  	ego_state.velocity.x = v_points[v_points.size()-1];
-  	if(velocity < 0.01)
-  		ego_state.rotation.yaw = yaw;
+    if( x_points.size() > 1 ){
+        ego_state.rotation.yaw = angle_between_points(x_points[x_points.size()-2], y_points[y_points.size()-2], x_points[x_points.size()-1], y_points[y_points.size()-1]);
+        ego_state.velocity.x = v_points[v_points.size()-1];
+        if(velocity < 0.01)
+            ego_state.rotation.yaw = yaw;
 
-  }
-
-  Maneuver behavior = behavior_planner.get_active_maneuver();
-
-  goal = behavior_planner.state_transition(ego_state, goal, is_junction, tl_state);
-
-  if(behavior == STOPPED){
-
-  	int max_points = 20;
-  	double point_x = x_points[x_points.size()-1];
-  	double point_y = y_points[x_points.size()-1];
-  	while( x_points.size() < max_points ){
-  	  x_points.push_back(point_x);
-  	  y_points.push_back(point_y);
-  	  v_points.push_back(0);
-
-  	}
-  	return;
-  }
-
-  auto goal_set = motion_planner.generate_offset_goals(goal);
-
-  auto spirals = motion_planner.generate_spirals(ego_state, goal_set);
-
-  auto desired_speed = utils::magnitude(goal.velocity);
-
-  State lead_car_state;  // = to the vehicle ahead...
-
-  if(spirals.size() == 0){
-  	cout << "Error: No spirals generated " << endl;
-  	return;
-  }
-
-  for(int i = 0; i < spirals.size(); i++){
-
-    auto trajectory = motion_planner._velocity_profile_generator.generate_trajectory( spirals[i], desired_speed, ego_state,
-                                                                                    lead_car_state, behavior);
-
-    vector<double> spiral_x;
-    vector<double> spiral_y;
-    vector<double> spiral_v;
-    for(int j = 0; j < trajectory.size(); j++){
-      double point_x = trajectory[j].path_point.x;
-      double point_y = trajectory[j].path_point.y;
-      double velocity = trajectory[j].v;
-      spiral_x.push_back(point_x);
-      spiral_y.push_back(point_y);
-      spiral_v.push_back(velocity);
     }
 
-    spirals_x.push_back(spiral_x);
-    spirals_y.push_back(spiral_y);
-    spirals_v.push_back(spiral_v);
+    Maneuver behavior = behavior_planner.get_active_maneuver();
 
-  }
+    goal = behavior_planner.state_transition(ego_state, goal, is_junction, tl_state);
 
-  best_spirals = motion_planner.get_best_spiral_idx(spirals, obstacles, goal);
-  int best_spiral_idx = -1;
+    if(behavior == STOPPED){
 
-  if(best_spirals.size() > 0)
-  	best_spiral_idx = best_spirals[best_spirals.size()-1];
+        int max_points = 20;
+        double point_x = x_points[x_points.size()-1];
+        double point_y = y_points[x_points.size()-1];
+        while( x_points.size() < max_points ){
+            x_points.push_back(point_x);
+            y_points.push_back(point_y);
+            v_points.push_back(0);
 
-  int index = 0;
-  int max_points = 20;
-  int add_points = spirals_x[best_spiral_idx].size();
-  while( x_points.size() < max_points && index < add_points ){
-    double point_x = spirals_x[best_spiral_idx][index];
-    double point_y = spirals_y[best_spiral_idx][index];
-    double velocity = spirals_v[best_spiral_idx][index];
-    index++;
-    x_points.push_back(point_x);
-    y_points.push_back(point_y);
-    v_points.push_back(velocity);
-  }
+        }
+        return;
+    }
+
+    auto goal_set = motion_planner.generate_offset_goals(goal);
+
+    auto spirals = motion_planner.generate_spirals(ego_state, goal_set);
+
+    auto desired_speed = utils::magnitude(goal.velocity);
+
+    State lead_car_state;  // = to the vehicle ahead...
+
+    if(spirals.size() == 0){
+        cout << "Error: No spirals generated " << endl;
+        return;
+    }
+
+    for(int i = 0; i < spirals.size(); i++){
+
+        auto trajectory = motion_planner._velocity_profile_generator.generate_trajectory( spirals[i], desired_speed, ego_state,
+                                                                                          lead_car_state, behavior);
+
+        vector<double> spiral_x;
+        vector<double> spiral_y;
+        vector<double> spiral_v;
+        for(int j = 0; j < trajectory.size(); j++){
+            double point_x = trajectory[j].path_point.x;
+            double point_y = trajectory[j].path_point.y;
+            double velocity = trajectory[j].v;
+            spiral_x.push_back(point_x);
+            spiral_y.push_back(point_y);
+            spiral_v.push_back(velocity);
+        }
+
+        spirals_x.push_back(spiral_x);
+        spirals_y.push_back(spiral_y);
+        spirals_v.push_back(spiral_v);
+
+    }
+
+    best_spirals = motion_planner.get_best_spiral_idx(spirals, obstacles, goal);
+    int best_spiral_idx = -1;
+
+    if(best_spirals.size() > 0)
+        best_spiral_idx = best_spirals[best_spirals.size()-1];
+
+    int index = 0;
+    int max_points = 20;
+    int add_points = spirals_x[best_spiral_idx].size();
+    while( x_points.size() < max_points && index < add_points ){
+        double point_x = spirals_x[best_spiral_idx][index];
+        double point_y = spirals_y[best_spiral_idx][index];
+        double velocity = spirals_v[best_spiral_idx][index];
+        index++;
+        x_points.push_back(point_x);
+        y_points.push_back(point_y);
+        v_points.push_back(velocity);
+    }
 
 
 }
 
 void set_obst(vector<double> x_points, vector<double> y_points, vector<State>& obstacles, bool& obst_flag){
 
-	for( int i = 0; i < x_points.size(); i++){
-		State obstacle;
-		obstacle.location.x = x_points[i];
-		obstacle.location.y = y_points[i];
-		obstacles.push_back(obstacle);
-	}
-	obst_flag = true;
+    for( int i = 0; i < x_points.size(); i++){
+        State obstacle;
+        obstacle.location.x = x_points[i];
+        obstacle.location.y = y_points[i];
+        obstacles.push_back(obstacle);
+    }
+    obst_flag = true;
 }
 
 //crash to wall
-PIDTRainer::Params steer_start{0.1, 0, 0};
-PIDTRainer::Params steer_delta{0.00, 0.0, 0.0};
+// PIDTRainer::Params steer_start{1e0, 0, 0}; // slow turn
+// PIDTRainer::Params steer_start{5e0, 0, 0}; // out of road after few turns
+// PIDTRainer::Params steer_start{5e0, 1, 0}; // unexpectet turn to wall
+// PIDTRainer::Params steer_start{5e0, 0, 0}; // unexpectet turn to wall
+PIDTRainer::Params steer_start{7e0, 0, 0}; // Base on PIDTrainer
+// PIDTRainer::Params steer_start{5.2, 2.1e-2, 2e-3}; // from pid trainer
+// PIDTRainer::Params steer_start{5.2, 2.2e-2, 2e-3}; // from pid trainer
+PIDTRainer::Params steer_delta{1e-1, 1e-3, 1e-3};
 
 
 //PIDTRainer::Params throttle_start{1, 0, 0}; // too fast
-PIDTRainer::Params throttle_start{0.2, 0, 0};
-PIDTRainer::Params throttle_delta{0, 0.0, 0};
+// PIDTRainer::Params throttle_start{1e-1, 0, 0}; // slow move
+// PIDTRainer::Params throttle_start{2e-1, 0, 0}; // when error is small throttle still required.
+// PIDTRainer::Params throttle_start{2.1e-1, 1e-3, 1e-2}; // from trainer
+PIDTRainer::Params throttle_start{2.1e-1, 3e-3, 1.1e-2}; // from trainer
+PIDTRainer::Params throttle_delta{1e-2, 1e-3, 1e-3};
 
 int main ()
 {
-  cout << "starting server" << endl;
-  uWS::Hub h;
+    cout << "starting server" << endl;
+    uWS::Hub h;
 
-  double new_delta_time;
-  int i = 0;
+    double new_delta_time;
+    int i = 0;
 
-  fstream file_steer;
-  file_steer.open("steer_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
-  file_steer.close();
-  fstream file_throttle;
-  file_throttle.open("throttle_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
-  file_throttle.close();
+    fstream file_steer;
+    file_steer.open("steer_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
+    file_steer.close();
+    fstream file_throttle;
+    file_throttle.open("throttle_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
+    file_throttle.close();
 
-  time_t prev_timer;
-  time_t timer;
-  time(&prev_timer);
+    time_t prev_timer;
+    time_t timer;
+    time(&prev_timer);
 
-  // initialize pid steer
-  /**
-  * TODO (Step 1): create pid (pid_steer) for steer command and initialize values
-  **/
-
-
-  // initialize pid throttle
-  /**
-  * TODO (Step 1): create pid (pid_throttle) for throttle command and initialize values
-  **/
-
-  PID pid_steer = PID();
-  PID pid_throttle = PID();
-  PIDTRainer steer_trainer(
-          pid_steer,
-          steer_start,
-          steer_delta,
-          "steer",
-          -1.2,
-          1.2);
-  PIDTRainer throttle_trainer(
-          pid_throttle,
-          throttle_start,
-          throttle_delta,
-          "throttle",
-          -1,
-          1);
+    // initialize pid steer
+    /**
+    * TODO (Step 1): create pid (pid_steer) for steer command and initialize values
+    **/
 
 
-  h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
-  {
-        auto s = hasData(data);
+    // initialize pid throttle
+    /**
+    * TODO (Step 1): create pid (pid_throttle) for throttle command and initialize values
+    **/
 
-        if (s != "") {
+    PID pid_steer = PID();
+    PID pid_throttle = PID();
+    PIDTRainer steer_trainer(
+            pid_steer,
+            steer_start,
+            steer_delta,
+            "steer",
+            -1.2,
+            1.2);
+    PIDTRainer throttle_trainer(
+            pid_throttle,
+            throttle_start,
+            throttle_delta,
+            "throttle",
+            -1,
+            1);
 
-          auto data = json::parse(s);
 
-          // create file to save values
-          fstream file_steer;
-          file_steer.open("steer_pid_data.txt");
-          fstream file_throttle;
-          file_throttle.open("throttle_pid_data.txt");
+    h.onMessage([&pid_steer, &pid_throttle, &steer_trainer, &throttle_trainer, &new_delta_time, &timer, &prev_timer, &i](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
+                {
+                    auto s = hasData(data);
 
-          vector<double> x_points = data["traj_x"];
-          vector<double> y_points = data["traj_y"];
-          vector<double> v_points = data["traj_v"];
-          double yaw = data["yaw"];
-          double velocity = data["velocity"];
-          double sim_time = data["time"];
-          double waypoint_x = data["waypoint_x"];
-          double waypoint_y = data["waypoint_y"];
-          double waypoint_t = data["waypoint_t"];
-          bool is_junction = data["waypoint_j"];
-          string tl_state = data["tl_state"];
+                    if (s != "") {
 
-          double x_position = data["location_x"];
-          double y_position = data["location_y"];
-          double z_position = data["location_z"];
+                        auto data = json::parse(s);
 
-          if(!have_obst){
-          	vector<double> x_obst = data["obst_x"];
-          	vector<double> y_obst = data["obst_y"];
-          	set_obst(x_obst, y_obst, obstacles, have_obst);
-          }
+                        // create file to save values
+                        fstream file_steer;
+                        file_steer.open("steer_pid_data.txt");
+                        fstream file_throttle;
+                        file_throttle.open("throttle_pid_data.txt");
 
-          State goal;
-          goal.location.x = waypoint_x;
-          goal.location.y = waypoint_y;
-          goal.rotation.yaw = waypoint_t;
+                        vector<double> x_points = data["traj_x"];
+                        vector<double> y_points = data["traj_y"];
+                        vector<double> v_points = data["traj_v"];
+                        double yaw = data["yaw"];
+                        double velocity = data["velocity"];
+                        double sim_time = data["time"];
+                        double waypoint_x = data["waypoint_x"];
+                        double waypoint_y = data["waypoint_y"];
+                        double waypoint_t = data["waypoint_t"];
+                        bool is_junction = data["waypoint_j"];
+                        string tl_state = data["tl_state"];
 
-          vector< vector<double> > spirals_x;
-          vector< vector<double> > spirals_y;
-          vector< vector<double> > spirals_v;
-          vector<int> best_spirals;
+                        double x_position = data["location_x"];
+                        double y_position = data["location_y"];
+                        double z_position = data["location_z"];
 
-          path_planner(x_points, y_points, v_points, yaw, velocity, goal, is_junction, tl_state, spirals_x, spirals_y, spirals_v, best_spirals);
+                        if(!have_obst){
+                            vector<double> x_obst = data["obst_x"];
+                            vector<double> y_obst = data["obst_y"];
+                            set_obst(x_obst, y_obst, obstacles, have_obst);
+                        }
 
-          // Save time and compute delta time
-          time(&timer);
-          new_delta_time = difftime(timer, prev_timer);
-          prev_timer = timer;
+                        State goal;
+                        goal.location.x = waypoint_x;
+                        goal.location.y = waypoint_y;
+                        goal.rotation.yaw = waypoint_t;
 
-          ////////////////////////////////////////
-          // Steering control
-          ////////////////////////////////////////
+                        vector< vector<double> > spirals_x;
+                        vector< vector<double> > spirals_y;
+                        vector< vector<double> > spirals_v;
+                        vector<int> best_spirals;
+                        auto error = get_error(
+                                x_points,
+                                y_points,
+                                v_points,
+                                x_position,
+                                y_position,
+                                yaw,
+                                velocity);
 
-          /**
-          * TODO (step 3): uncomment these lines
-          **/
+                        path_planner(x_points, y_points, v_points, yaw, velocity, goal, is_junction, tl_state, spirals_x, spirals_y, spirals_v, best_spirals);
+
+                        // Save time and compute delta time
+                        time(&timer);
+                        new_delta_time = difftime(timer, prev_timer);
+                        prev_timer = timer;
+
+                        ////////////////////////////////////////
+                        // Steering control
+                        ////////////////////////////////////////
+
+                        /**
+                        * TODO (step 3): uncomment these lines
+                        **/
 //           // Update the delta time with the previous command
-          pid_steer.UpdateDeltaTime(new_delta_time);
+                        pid_steer.UpdateDeltaTime(new_delta_time);
 
-          // Compute steer error
-          auto error = get_error(
-                  x_points,
-                  y_points,
-                  v_points,
-                  x_position,
-                  y_position,
-                  yaw,
-                  velocity);
-          double steer_output;
+                        // Compute steer error
+                        double steer_output;
 
-          /**
-          * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
-          **/
+                        /**
+                        * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
+                        **/
 
-          /**
-          * TODO (step 3): uncomment these lines
-          **/
+                        /**
+                        * TODO (step 3): uncomment these lines
+                        **/
 //           // Compute control to apply
-           pid_steer.UpdateError(error.steer);
-           steer_output = pid_steer.TotalError();
-           std::cout << "steer  " << error.steer << " " << steer_output << std::endl;
+                        pid_steer.UpdateError(error.steer);
+                        steer_output = pid_steer.TotalError();
+                        std::cout << "steer  " << error.steer << " " << steer_output << std::endl;
 
 //           // Save data
-           file_steer.seekg(std::ios::beg);
-           for(int j=0; j < i - 1; ++j) {
-               file_steer.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-           }
-           file_steer  << i ;
-           file_steer  << " " << error.steer;
-           file_steer  << " " << steer_output << endl;
+                        file_steer.seekg(std::ios::beg);
+                        for(int j=0; j < i - 1; ++j) {
+                            file_steer.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        }
+                        file_steer  << i ;
+                        file_steer  << " " << error.steer;
+                        file_steer  << " " << steer_output << endl;
 
-          ////////////////////////////////////////
-          // Throttle control
-          ////////////////////////////////////////
+                        ////////////////////////////////////////
+                        // Throttle control
+                        ////////////////////////////////////////
 
-          /**
-          * TODO (step 2): uncomment these lines
-          **/
+                        /**
+                        * TODO (step 2): uncomment these lines
+                        **/
 //           // Update the delta time with the previous command
-           pid_throttle.UpdateDeltaTime(new_delta_time);
+                        pid_throttle.UpdateDeltaTime(new_delta_time);
 
-          // Compute error of speed
-          /**
-          * TODO (step 2): compute the throttle error (error_throttle) from the position and the desired speed
-          **/
-          // modify the following line for step 2
+                        // Compute error of speed
+                        /**
+                        * TODO (step 2): compute the throttle error (error_throttle) from the position and the desired speed
+                        **/
+                        // modify the following line for step 2
 
-          double throttle_output;
-          double brake_output;
+                        double throttle_output;
+                        double brake_output;
 
-          /**
-          * TODO (step 2): uncomment these lines
-          **/
-           // Compute control to apply
-           pid_throttle.UpdateError(error.throttle);
-           double throttle = pid_throttle.TotalError();
+                        /**
+                        * TODO (step 2): uncomment these lines
+                        **/
+                        // Compute control to apply
+                        pid_throttle.UpdateError(error.throttle);
+                        double throttle = pid_throttle.TotalError();
+                        steer_trainer.update_cte(error.steer, new_delta_time);
+                        throttle_trainer.update_cte(error.throttle, new_delta_time);
 
-           // Adapt the negative throttle to break
-           if (throttle > 0.0) {
-             throttle_output = throttle;
-             brake_output = 0;
-           } else {
-             throttle_output = 0;
-             brake_output = -throttle;
-           }
+                        // Adapt the negative throttle to break
+                        if (throttle > 0.0) {
+                            throttle_output = throttle;
+                            brake_output = 0;
+                        } else {
+                            throttle_output = 0;
+                            brake_output = -throttle;
+                        }
 
 //          Save data
-          file_throttle.seekg(std::ios::beg);
-          for(int j=0; j < i - 1; ++j){
-              file_throttle.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-          }
-          file_throttle  << i ;
-          file_throttle  << " " << error.throttle;
-          file_throttle  << " " << brake_output;
-          file_throttle  << " " << throttle_output << endl;
+                        file_throttle.seekg(std::ios::beg);
+                        for(int j=0; j < i - 1; ++j){
+                            file_throttle.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+                        }
+                        file_throttle  << i ;
+                        file_throttle  << " " << error.throttle;
+                        file_throttle  << " " << brake_output;
+                        file_throttle  << " " << throttle_output << endl;
 
 
-          // Send control
-          json msgJson;
-          msgJson["brake"] = brake_output;
-          msgJson["throttle"] = throttle_output;
-          msgJson["steer"] = steer_output;
+                        // Send control
+                        json msgJson;
+                        msgJson["brake"] = brake_output;
+                        msgJson["throttle"] = throttle_output;
+                        msgJson["steer"] = steer_output;
 
-          msgJson["trajectory_x"] = x_points;
-          msgJson["trajectory_y"] = y_points;
-          msgJson["trajectory_v"] = v_points;
-          msgJson["spirals_x"] = spirals_x;
-          msgJson["spirals_y"] = spirals_y;
-          msgJson["spirals_v"] = spirals_v;
-          msgJson["spiral_idx"] = best_spirals;
-          msgJson["active_maneuver"] = behavior_planner.get_active_maneuver();
+                        msgJson["trajectory_x"] = x_points;
+                        msgJson["trajectory_y"] = y_points;
+                        msgJson["trajectory_v"] = v_points;
+                        msgJson["spirals_x"] = spirals_x;
+                        msgJson["spirals_y"] = spirals_y;
+                        msgJson["spirals_v"] = spirals_v;
+                        msgJson["spiral_idx"] = best_spirals;
+                        msgJson["active_maneuver"] = behavior_planner.get_active_maneuver();
 
-          //  min point threshold before doing the update
-          // for high update rate use 19 for slow update rate use 4
-          msgJson["update_point_thresh"] = 16;
+                        //  min point threshold before doing the update
+                        // for high update rate use 19 for slow update rate use 4
+                        msgJson["update_point_thresh"] = 16;
 
-          auto msg = msgJson.dump();
+                        auto msg = msgJson.dump();
 
-          i = i + 1;
-          file_steer.close();
-          file_throttle.close();
+                        i = i + 1;
+                        file_steer.close();
+                        file_throttle.close();
 
-      ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+                        ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
+                    }
+
+                });
+
+
+    h.onConnection([](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req)
+                   {
+                       cout << "Connected!!!" << endl;
+                   });
+
+
+    h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length)
+                      {
+                          ws.close();
+                          cout << "Disconnected" << endl;
+                      });
+
+    int port = 4567;
+    if (h.listen("0.0.0.0", port))
+    {
+        cout << "Listening to port " << port << endl;
+        h.run();
     }
-
-  });
-
-
-  h.onConnection([](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req)
-  {
-      cout << "Connected!!!" << endl;
-    });
-
-
-  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length)
+    else
     {
-      ws.close();
-      cout << "Disconnected" << endl;
-    });
-
-  int port = 4567;
-  if (h.listen("0.0.0.0", port))
-    {
-      cout << "Listening to port " << port << endl;
-      h.run();
-    }
-  else
-    {
-      cerr << "Failed to listen to port" << endl;
-      return -1;
+        cerr << "Failed to listen to port" << endl;
+        return -1;
     }
 
 

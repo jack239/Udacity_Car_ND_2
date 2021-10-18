@@ -4,8 +4,8 @@
 #include <Eigen/Core>
 
 struct Error{
-    double steer;
-    double throttle;
+    double steer = 0;
+    double throttle = 0;
 };
 
 inline int get_closest(
@@ -52,6 +52,11 @@ inline Error get_error(
         double velocity
         ) {
     Error result;
+
+    if (x_points.size() < 2) {
+        return result;
+    }
+
     std::vector<Eigen::Vector2d> trajectory;
     trajectory.reserve(x_points.size());
     for (size_t i = 0; i < x_points.size(); ++i) {

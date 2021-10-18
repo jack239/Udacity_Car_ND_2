@@ -41,6 +41,10 @@ public:
             update_state();
         }
     }
+
+    ~PIDTRainer() {
+        plot_best();
+    }
 private:
     void set_params() {
         std::cout << pid_name_ << " set_params " << nlohmann::json(current_params_) <<  std::endl;
@@ -58,9 +62,9 @@ private:
         } else {
             double aver_error = current_error_ / time_;
             if (max_error_ > aver_error) {
-                std::cout << "new best cte for " <<  " params " << nlohmann::json(current_params_) <<  std::endl;
-                delta_[param_id_] *= 1.1;
                 best_params_ = current_params_;
+                plot_best();
+                delta_[param_id_] *= 1.1;
                 max_error_ = aver_error;
                 try_params(State::Inc);
             } else {
@@ -82,8 +86,15 @@ private:
         if (state_ == State::Inc) {
             param_id_ = (param_id_ + 1) % 3;
             current_params_[param_id_] += delta_[param_id_];
+            plot_best();
         }
         set_params();
+    }
+
+    void plot_best() const {
+        std::cout << "=======================================" << std::endl;
+        std::cout << "best params for " << pid_name_ <<  " is " << nlohmann::json(current_params_) <<  std::endl;
+        std::cout << "=======================================" << std::endl;
     }
 
 private:

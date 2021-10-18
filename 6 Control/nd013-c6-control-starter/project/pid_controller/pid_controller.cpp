@@ -43,7 +43,7 @@ void PID::UpdateError(double cte) {
 }
 
 double PID::TotalError() {
-    double error = (Kp_ * p_error + Kd_ * d_error + Ki_ * i_error);
+    double error = -(Kp_ * p_error + Kd_ * d_error + Ki_ * i_error);
     std::cout << "error " << error << std::endl;
     std::cout << "lims "  << error_min_  << " " <<  error_max_ << std::endl;
     return utils::clampD(error, error_min_, error_max_);

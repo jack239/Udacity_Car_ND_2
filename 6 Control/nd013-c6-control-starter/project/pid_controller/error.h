@@ -11,7 +11,7 @@ struct Error{
 inline int get_closest(
         const std::vector<Eigen::Vector2d>& trajectory,
         const Eigen::Vector2d ego_point
-        ) {
+) {
     double min_dist = std::numeric_limits<double>::infinity();
     int result = -1;
     for (size_t i = 0; i < trajectory.size(); ++i) {
@@ -24,22 +24,12 @@ inline int get_closest(
     return result;
 }
 
-inline size_t previous_point(
+inline size_t target_index(
         const std::vector<Eigen::Vector2d>& trajectory,
         const Eigen::Vector2d ego_point
-        ) {
+) {
     int closest = get_closest(trajectory, ego_point);
-    if (closest <= 0) {
-        return 0;
-    }
-    if (trajectory.size() <= closest + 1) {
-        return closest - 1;
-    }
-    if ((trajectory.at(closest - 1) - ego_point).squaredNorm() <
-        (trajectory.at(closest + 1) - ego_point).squaredNorm()) {
-        return closest - 1;
-    }
-    return closest;
+    return std::min<int>(closest + 1, trajectory.size() - 1);
 }
 
 inline Error get_error(
@@ -50,7 +40,7 @@ inline Error get_error(
         double y,
         double yaw,
         double velocity
-        ) {
+) {
     Error result;
 
     if (x_points.size() < 2) {
@@ -64,20 +54,17 @@ inline Error get_error(
     }
     Eigen::Vector2d point{x, y};
 
-    int prev_point = previous_point(trajectory, point);
-    const auto& prev = trajectory.at(prev_point);
-    const auto& next = trajectory.at(prev_point + 1);
+    int t_index = target_index(trajectory, point);
 
-    Eigen::Vector2d direction = next - prev;
+    int dir_index = std::min<int>(x_points.size() - 1, t_index + 2);
+    Eigen::Vector2d direction = trajectory.at(dir_index) - point;
     double desired_yaw = std::atan2(direction.y(), direction.x());
 
-    std::cout << "\tyaw " << yaw << "\n\tdesired_yaw " <<  desired_yaw << std::endl;
     result.steer = yaw - desired_yaw;
-    utils::keep_angle_range_rad(result.steer, -M_PI, M_PI);
+    result.steer = utils::keep_angle_range_rad(result.steer, -M_PI, M_PI);
 
-    double desired_velocity = v_points.at(prev_point + 1);
+    double desired_velocity = v_points.at(t_index);
     result.throttle = velocity - desired_velocity;
-    std::cout << "\tvelocity " << velocity << "\n\tdesired_velocity " <<  desired_velocity << std::endl;
 
     return result;
 }

@@ -198,22 +198,18 @@ void set_obst(vector<double> x_points, vector<double> y_points, vector<State>& o
 }
 
 //crash to wall
-// PIDTRainer::Params steer_start{1e0, 0, 0}; // slow turn
-// PIDTRainer::Params steer_start{5e0, 0, 0}; // out of road after few turns
-// PIDTRainer::Params steer_start{5e0, 1, 0}; // unexpectet turn to wall
-// PIDTRainer::Params steer_start{5e0, 0, 0}; // unexpectet turn to wall
-PIDTRainer::Params steer_start{7e0, 0, 0}; // Base on PIDTrainer
-// PIDTRainer::Params steer_start{5.2, 2.1e-2, 2e-3}; // from pid trainer
-// PIDTRainer::Params steer_start{5.2, 2.2e-2, 2e-3}; // from pid trainer
-PIDTRainer::Params steer_delta{1e-1, 1e-3, 1e-3};
+// PIDTRainer::Params steer_start{1e0, 0, 0}; // turned in wall on the street corner
+// PIDTRainer::Params steer_start{1e-1, 0, 0}; //Collision with scond car(Citroen)
+PIDTRainer::Params steer_start{2e-1, 0, 0}; // Collision with wall in 5 minutes. Start training
+PIDTRainer::Params steer_delta{1e-2, 1e-5, 1e-5};
+// PIDTRainer::Params steer_delta{0, 0, 0};
 
 
-//PIDTRainer::Params throttle_start{1, 0, 0}; // too fast
+// PIDTRainer::Params throttle_start{1, 0, 0}; // too fast
 // PIDTRainer::Params throttle_start{1e-1, 0, 0}; // slow move
-// PIDTRainer::Params throttle_start{2e-1, 0, 0}; // when error is small throttle still required.
-// PIDTRainer::Params throttle_start{2.1e-1, 1e-3, 1e-2}; // from trainer
-PIDTRainer::Params throttle_start{2.1e-1, 3e-3, 1.1e-2}; // from trainer
-PIDTRainer::Params throttle_delta{1e-2, 1e-3, 1e-3};
+PIDTRainer::Params throttle_start{2e-1, 0, 0}; // when error is small throttle still required.
+PIDTRainer::Params throttle_delta{1e-2, 1e-5, 1e-5};
+// PIDTRainer::Params throttle_delta{0, 0, 0};
 
 int main ()
 {
@@ -347,7 +343,6 @@ int main ()
 //           // Compute control to apply
                         pid_steer.UpdateError(error.steer);
                         steer_output = pid_steer.TotalError();
-                        std::cout << "steer  " << error.steer << " " << steer_output << std::endl;
 
 //           // Save data
                         file_steer.seekg(std::ios::beg);
@@ -461,6 +456,4 @@ int main ()
         cerr << "Failed to listen to port" << endl;
         return -1;
     }
-
-
 }

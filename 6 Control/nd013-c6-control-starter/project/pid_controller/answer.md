@@ -1,5 +1,8 @@
 [comment]: <> (// Answer the following questions:)
 
+### Run simulator.
+![stay](screenshot/1.car_stay.jpg)
+
 ### Preparation.
 For more simple controller I change [simulatorAPI.py](../simulatorAPI.py).
 Before that changes `yaw` was direction of first waypoint. 
@@ -19,7 +22,14 @@ I think with some bias it can be more robust.
 
 ### PID components.
 For not perfect trajectory P components in both controllers were enough.  
-In [solution](https://review.udacity.com/#!/reviews/3095222) of previous version PID controller project I use all 3 components
+In [solution](https://review.udacity.com/#!/reviews/3095222) of previous version PID controller project I use all 3 components.
+* It was enough to change lines.
+![cl1](screenshot/2.change_line_1.png)
+![cl2](screenshot/3.change_line_2.png)
+* U turn
+![uturn](screenshot/6.turn.png)
+* Reach end of tunnel
+![end](screenshot/8.end%20of%20tunnel.png)
 
 [comment]: <> (// How would you design a way to automatically tune the PID parameters?)
 
